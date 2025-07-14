@@ -1,0 +1,7 @@
+# Playwright
+node_modules
+dist
+test-results
+reports
+*.log
+.DS_Store
