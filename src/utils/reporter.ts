@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { formatISO } from 'date-fns';
+import { format } from 'date-fns';
 
 /**
  * Simple reporter to log test results
@@ -13,7 +13,7 @@ export class Reporter {
    * @param error Error message if test failed
    */
   static logTestResult(testName: string, status: string, error?: string): void {
-    const timestamp = formatISO(new Date());
+    const timestamp = format(new Date(), "yyyy-MM-dd'T'HH:mm:ssXXX");
     const logDir = path.join(process.cwd(), 'test-results', 'logs');
     
     if (!fs.existsSync(logDir)) {

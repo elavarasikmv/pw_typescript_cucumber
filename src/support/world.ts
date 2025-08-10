@@ -9,15 +9,19 @@ export interface CustomWorld extends World {
   testName?: string;
 }
 
+interface IWorldOptionsWithPickle extends IWorldOptions {
+  pickle?: { name: string };
+}
+
 export class PlaywrightWorld extends World implements CustomWorld {
   browser!: Browser;
   context!: BrowserContext;
   page!: Page;
   testName?: string;
 
-  constructor(options: IWorldOptions) {
+  constructor(options: IWorldOptionsWithPickle) {
     super(options);
-    this.testName = options.pickle.name.replace(/\W/g, '-');
+    this.testName = options.pickle?.name ? options.pickle.name.replace(/\W/g, '-') : undefined;
   }
 
   async init() {
@@ -44,7 +48,8 @@ export class PlaywrightWorld extends World implements CustomWorld {
     this.page = await this.context.newPage();
     
     // Add expect to make it available in step definitions
-    this.context.expect = expect;
+    // You can access expect via the world instance: this.expect
+    (this as any).expect = expect;
   }
 }
 

@@ -10,4 +10,4 @@ Feature: Example Feature
 
   Scenario: Visit GitHub
     Given I am on the GitHub homepage
-    Then I should see the GitHub logo
+    Then I should see the GitHub logo    

@@ -14,23 +14,27 @@ BeforeAll(async function() {
   }
 });
 
-Before(async function(this: PlaywrightWorld) {
+Before({ timeout: 30000 }, async function(this: PlaywrightWorld) {
   await this.init();
 });
 
 After(async function(this: PlaywrightWorld, scenario) {
   // Take screenshot if scenario failed
-  if (scenario.result?.status === Status.FAILED) {
-    const screenshotPath = path.join('test-results/screenshots', `${this.testName}-failure.png`);
-    await this.page.screenshot({ path: screenshotPath, fullPage: true });
-    
-    // Attach screenshot to report
-    const screenshot = fs.readFileSync(screenshotPath);
-    this.attach(screenshot, 'image/png');
+  if (scenario.result?.status === Status.FAILED && this.page) {
+    try {
+      const screenshotPath = path.join('test-results/screenshots', `${this.testName || 'test'}-failure.png`);
+      await this.page.screenshot({ path: screenshotPath, fullPage: true });
+      
+      // Attach screenshot to report
+      const screenshot = fs.readFileSync(screenshotPath);
+      this.attach(screenshot, 'image/png');
+    } catch (error) {
+      console.log('Failed to take screenshot:', error);
+    }
   }
   
   // Close browser
-  await this.page.close();
-  await this.context.close();
-  await this.browser.close();
+  if (this.page) await this.page.close();
+  if (this.context) await this.context.close();
+  if (this.browser) await this.browser.close();
 });
