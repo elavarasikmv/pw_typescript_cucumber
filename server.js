@@ -22,14 +22,51 @@ const ensureDirectories = () => {
 
 ensureDirectories();
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+// Health check endpoint with browser verification
+app.get('/health', async (req, res) => {
+    const healthStatus = {
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         nodeVersion: process.version,
-        environment: process.env.NODE_ENV || 'development'
-    });
+        environment: process.env.NODE_ENV || 'development',
+        playwright: {}
+    };
+
+    try {
+        // Check Playwright availability
+        const { chromium } = require('playwright');
+        
+        try {
+            // Check if executable exists
+            const executablePath = chromium.executablePath();
+            healthStatus.playwright.executablePath = executablePath;
+            healthStatus.playwright.available = true;
+            
+            // Quick browser test (only if requested)
+            if (req.query.testBrowser === 'true') {
+                console.log('🔍 Running health check browser test...');
+                const browser = await chromium.launch({ 
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+                });
+                await browser.close();
+                healthStatus.playwright.browserTest = 'passed';
+                console.log('✅ Health check browser test passed');
+            }
+            
+        } catch (playwrightError) {
+            healthStatus.playwright.available = false;
+            healthStatus.playwright.error = playwrightError.message;
+            healthStatus.status = 'warning';
+        }
+        
+    } catch (requireError) {
+        healthStatus.playwright.available = false;
+        healthStatus.playwright.error = 'Playwright not installed';
+        healthStatus.status = 'warning';
+    }
+
+    res.json(healthStatus);
 });
 
 // Root endpoint

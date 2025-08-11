@@ -1,19 +1,45 @@
 # Azure App Service Application Settings
 # Add these in Azure Portal: App Service → Configuration → Application settings
 
+# Playwright Configuration
+PLAYWRIGHT_BROWSERS_PATH=/home/site/wwwroot/browsers
+PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
+PLAYWRIGHT_CACHE_DIR=/home/site/wwwroot/.cache
+PLAYWRIGHT_DOWNLOAD_HOST=https://playwright.azureedge.net
+
+# Node.js Configuration
+NODE_ENV=production
+NODE_OPTIONS=--max-old-space-size=2048
+
+# Application Configuration
 HEADLESS=true
 CI=true
-NODE_ENV=production
-PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
-TEST_TIMEOUT=30000
+AZURE_DEPLOYMENT=true
+
+# Browser Configuration
 BROWSER=chromium
+CHROME_DEVEL_SANDBOX=false
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+# Build Configuration
 SCM_DO_BUILD_DURING_DEPLOYMENT=true
 ENABLE_ORYX_BUILD=true
 BUILD_FLAGS=useExpressServer
 
-# Optional: For debugging
-DEBUG=pw:*
-PLAYWRIGHT_DEBUG=0
+# Timeout Configuration
+TEST_TIMEOUT=30000
 
-# Optional: For better performance
-NODE_OPTIONS=--max-old-space-size=4096
+# Performance Configuration
+UV_THREADPOOL_SIZE=4
+
+# Logging Configuration
+LOG_LEVEL=info
+ENABLE_LOGGING=true
+
+# Optional: For debugging (disable in production)
+# DEBUG=pw:*
+# PLAYWRIGHT_DEBUG=1
+
+# Azure-specific
+WEBSITE_NODE_DEFAULT_VERSION=~18
+WEBSITE_RUN_FROM_PACKAGE=1
