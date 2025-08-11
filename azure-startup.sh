@@ -12,7 +12,8 @@ echo "Starting at: $(date)"
 export HEADLESS="true"
 export CI="true"
 export AZURE_DEPLOYMENT="true"
-export PLAYWRIGHT_BROWSERS_PATH="/tmp/playwright-browsers"
+export PLAYWRIGHT_BROWSERS_PATH="/home/site/wwwroot/browsers"
+export PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
 
 # Change to application directory
 cd /home/site/wwwroot
@@ -28,6 +29,40 @@ if [ -f "package-lock.json" ]; then
 else
     npm install --production --silent
 fi
+
+# Install Playwright browsers if not already installed
+echo "🎭 Checking Playwright browser installation..."
+if ! npx playwright --version > /dev/null 2>&1; then
+    echo "❌ Playwright not found, installing..."
+    npm install playwright
+fi
+
+# Install browsers
+echo "🚀 Installing Playwright browsers..."
+npx playwright install --with-deps chromium || {
+    echo "⚠️ Standard installation failed, trying alternative method..."
+    npx playwright install chromium
+}
+
+# Verify browser installation
+echo "🔍 Verifying browser installation..."
+node -e "
+const { chromium } = require('playwright');
+(async () => {
+  try {
+    console.log('Testing browser launch...');
+    const browser = await chromium.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    });
+    console.log('✅ Browser launched successfully');
+    await browser.close();
+  } catch (error) {
+    console.error('❌ Browser test failed:', error.message);
+    console.log('🔧 Available browsers:', await chromium.executablePath());
+  }
+})();
+" || echo "⚠️ Browser verification failed, continuing anyway..."
 
 # Install Playwright browsers in a custom location to avoid permission issues
 echo "Installing Playwright browsers..."

@@ -1,7 +1,66 @@
 const { chromium } = require('playwright');
 
+async function ensureBrowsersInstalled() {
+    console.log('🔍 Checking browser installation...');
+    try {
+        // Try to get the executable path
+        const executablePath = await chromium.executablePath();
+        console.log(`✅ Browser found at: ${executablePath}`);
+        return true;
+    } catch (error) {
+        console.log('⚠️ Browser not found, attempting installation...');
+        
+        try {
+            // Try to install browsers
+            const { spawn } = require('child_process');
+            
+            return new Promise((resolve, reject) => {
+                const installProcess = spawn('npx', ['playwright', 'install', 'chromium'], {
+                    stdio: 'pipe'
+                });
+                
+                installProcess.stdout.on('data', (data) => {
+                    console.log(`📥 Install: ${data.toString()}`);
+                });
+                
+                installProcess.stderr.on('data', (data) => {
+                    console.log(`⚠️ Install Error: ${data.toString()}`);
+                });
+                
+                installProcess.on('close', (code) => {
+                    if (code === 0) {
+                        console.log('✅ Browser installation completed');
+                        resolve(true);
+                    } else {
+                        console.log('❌ Browser installation failed');
+                        resolve(false);
+                    }
+                });
+                
+                installProcess.on('error', (error) => {
+                    console.error('❌ Installation process error:', error);
+                    resolve(false);
+                });
+            });
+        } catch (installError) {
+            console.error('❌ Failed to install browsers:', installError);
+            return false;
+        }
+    }
+}
+
 async function runBasicWebTest() {
     console.log('🚀 Starting Basic Web Test...');
+    
+    // First ensure browsers are available
+    const browsersReady = await ensureBrowsersInstalled();
+    if (!browsersReady) {
+        return {
+            success: false,
+            error: 'Browsers not available. Please run: npx playwright install',
+            instruction: 'Run "npx playwright install chromium" to install required browsers'
+        };
+    }
     
     let browser = null;
     try {
@@ -15,7 +74,10 @@ async function runBasicWebTest() {
                 '--disable-gpu',
                 '--no-first-run',
                 '--no-zygote',
-                '--single-process'
+                '--single-process',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding'
             ]
         });
         
@@ -61,6 +123,19 @@ async function runBasicWebTest() {
         
     } catch (error) {
         console.error('❌ Basic Web Test failed:', error.message);
+        
+        // Check if it's a browser installation issue
+        if (error.message.includes('Executable doesn\'t exist') || 
+            error.message.includes('browserType.launch')) {
+            return {
+                success: false,
+                error: 'Browser installation issue detected',
+                instruction: 'Please run: npx playwright install chromium --with-deps',
+                originalError: error.message,
+                stack: error.stack
+            };
+        }
+        
         return { 
             success: false, 
             error: error.message,

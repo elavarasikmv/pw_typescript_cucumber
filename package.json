@@ -5,6 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
+    "install-browsers": "npx playwright install --with-deps",
+    "install-browsers-docker": "npx playwright install chromium --with-deps",
+    "prestart": "npm run install-browsers-docker",
+    "postinstall": "npm run install-browsers-docker",
     "test": "cucumber-js --config=config/cucumber.js",
     "test:debug": "cross-env LOG_LEVEL=debug cucumber-js --config=config/cucumber.js",
     "test:verbose": "cross-env LOG_LEVEL=debug cucumber-js --config=config/cucumber.js --format @cucumber/pretty-formatter",
@@ -22,7 +26,9 @@
     "logs:latest": "powershell -ExecutionPolicy Bypass -File logs.ps1 latest",
     "logs:app": "powershell -ExecutionPolicy Bypass -File logs.ps1 app",
     "logs:clean": "powershell -Command \"if (Test-Path './logs') { Remove-Item ./logs/*.log -Force; Write-Host 'Logs cleaned' } else { Write-Host 'No logs to clean' }\"",
-    "preinstall": "npx playwright install --with-deps"
+    "preinstall": "echo 'Preparing for Playwright installation...'",
+    "azure:install": "npx playwright install chromium --with-deps && npx playwright install-deps",
+    "azure:test": "npm run azure:install && npm test"
   },
   "keywords": [
     "cucumber",
