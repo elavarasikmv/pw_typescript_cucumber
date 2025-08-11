@@ -86,7 +86,7 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
           resolve(false);
         }, 300000); // 5 minutes
         
-      } catch (requireError) {
+      } catch (requireError: any) {
         console.log(`playwright-core not found, trying fallback: ${requireError.message}`);
         // Fallback: try using playwright package
         try {
@@ -111,7 +111,7 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
             console.log(`${browserType} browser installation (fallback) error: ${error.message}`);
             resolve(false);
           });
-        } catch (fallbackError) {
+        } catch (fallbackError: any) {
           console.log(`Both playwright and playwright-core failed: ${fallbackError.message}`);
           resolve(false);
         }
