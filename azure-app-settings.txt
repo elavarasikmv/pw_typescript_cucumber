@@ -1,0 +1,19 @@
+# Azure App Service Application Settings
+# Add these in Azure Portal: App Service → Configuration → Application settings
+
+HEADLESS=true
+CI=true
+NODE_ENV=production
+PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
+TEST_TIMEOUT=30000
+BROWSER=chromium
+SCM_DO_BUILD_DURING_DEPLOYMENT=true
+ENABLE_ORYX_BUILD=true
+BUILD_FLAGS=useExpressServer
+
+# Optional: For debugging
+DEBUG=pw:*
+PLAYWRIGHT_DEBUG=0
+
+# Optional: For better performance
+NODE_OPTIONS=--max-old-space-size=4096

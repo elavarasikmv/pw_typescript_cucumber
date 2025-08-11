@@ -1,4 +1,5 @@
 import { Page } from 'playwright';
+import logger from '../utils/logger';
 
 export class BasePage {
   constructor(protected page: Page) {}
@@ -8,7 +9,14 @@ export class BasePage {
    * @param url The URL to navigate to
    */
   async navigate(url: string): Promise<void> {
-    await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+    logger.debug(`🌐 Navigating to: ${url}`);
+    try {
+      await this.page.goto(url, { waitUntil: 'domcontentloaded' });
+      logger.debug(`✅ Successfully navigated to: ${url}`);
+    } catch (error) {
+      logger.error(`❌ Failed to navigate to ${url}: ${error}`);
+      throw error;
+    }
   }
   
   /**
@@ -32,8 +40,16 @@ export class BasePage {
    * @returns True if element exists, false otherwise
    */
   async elementExists(selector: string): Promise<boolean> {
-    const element = await this.page.$(selector);
-    return element !== null;
+    logger.debug(`🔍 Checking if element exists: ${selector}`);
+    try {
+      const element = await this.page.$(selector);
+      const exists = element !== null;
+      logger.debug(`${exists ? '✅' : '❌'} Element ${selector}: ${exists ? 'found' : 'not found'}`);
+      return exists;
+    } catch (error) {
+      logger.error(`❌ Error checking element ${selector}: ${error}`);
+      return false;
+    }
   }
   
   /**
