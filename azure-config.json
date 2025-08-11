@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "description": "Azure App Service configuration for Playwright Cucumber Framework",
+  "appSettings": {
+    "HEADLESS": "true",
+    "CI": "true",
+    "NODE_ENV": "production",
+    "PLAYWRIGHT_BROWSERS_PATH": "/tmp/playwright-browsers",
+    "TEST_TIMEOUT": "30000",
+    "BROWSER": "chromium"
+  },
+  "startup": {
+    "command": "./azure-startup.sh",
+    "timeout": 300
+  },
+  "logging": {
+    "level": "info",
+    "applicationLogs": {
+      "fileSystem": {
+        "level": "information"
+      }
+    }
+  },
+  "platform": {
+    "node": {
+      "version": "18"
+    }
+  }
+}

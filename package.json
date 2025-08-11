@@ -10,6 +10,9 @@
     "test:webkit": "cucumber-js --config=config/cucumber.js --profile=webkit",
     "test:headless": "HEADLESS=true cucumber-js --config=config/cucumber.js",
     "test:headed": "HEADLESS=false cucumber-js --config=config/cucumber.js",
+    "test:azure": "./azure-startup.sh",
+    "test:script": "./run-tests.sh",
+    "test:script:windows": "powershell -ExecutionPolicy Bypass -File run-tests.ps1",
     "preinstall": "npx playwright install --with-deps"
   },
   "keywords": [
