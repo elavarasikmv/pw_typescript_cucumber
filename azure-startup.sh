@@ -17,13 +17,29 @@ export PLAYWRIGHT_BROWSERS_PATH="/tmp/playwright-browsers"
 # Change to application directory
 cd /home/site/wwwroot
 
+# Check Node.js version
+echo "Node.js version: $(node --version)"
+echo "NPM version: $(npm --version)"
+
 # Ensure Node.js modules are installed
 echo "Installing dependencies..."
-npm ci --only=production
+if [ -f "package-lock.json" ]; then
+    npm ci --production --silent
+else
+    npm install --production --silent
+fi
 
 # Install Playwright browsers in a custom location to avoid permission issues
 echo "Installing Playwright browsers..."
-npx playwright install --with-deps chromium
+export PLAYWRIGHT_BROWSERS_PATH=/tmp/playwright-browsers
+mkdir -p $PLAYWRIGHT_BROWSERS_PATH
+
+# Install only Chromium to save space and time
+npx playwright install chromium --with-deps || {
+    echo "Failed to install Playwright browsers, trying alternative method..."
+    npx playwright install-deps
+    npx playwright install chromium
+}
 
 # Create test results directory
 mkdir -p test-results

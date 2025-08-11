@@ -4,6 +4,7 @@
   "description": "Cucumber framework with TypeScript and Playwright",
   "main": "index.js",
   "scripts": {
+    "start": "node --version && npm test",
     "test": "cucumber-js --config=config/cucumber.js",
     "test:chrome": "cucumber-js --config=config/cucumber.js --profile=chrome",
     "test:firefox": "cucumber-js --config=config/cucumber.js --profile=firefox",
