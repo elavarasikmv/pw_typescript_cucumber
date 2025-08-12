@@ -17,18 +17,42 @@ interface IWorldOptionsWithPickle extends IWorldOptions {
 async function installBrowserIfNeeded(browserType: string = 'chromium') {
   console.log(`🔧 Checking ${browserType} browser installation...`);
   
+  // Force Azure-compatible environment variables
+  const isAzure = process.env.AZURE_DEPLOYMENT === 'true' || process.env.WEBSITE_SITE_NAME;
+  const browserPath = isAzure ? '/home/site/wwwroot/browsers' : process.env.PLAYWRIGHT_BROWSERS_PATH || '/tmp/playwright-browsers';
+  
+  // Set environment variables for Azure compatibility
+  process.env.PLAYWRIGHT_BROWSERS_PATH = browserPath;
+  process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = 'false';
+  
+  console.log(`📍 Browser path: ${browserPath}`);
+  console.log(`🌍 Azure environment: ${isAzure ? 'Yes' : 'No'}`);
+  
   try {
     // Try to launch browser first to check if it exists
     let testBrowser;
+    const launchOptions = {
+      headless: true,
+      args: isAzure ? [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process'
+      ] : []
+    };
+    
     switch (browserType) {
       case 'firefox':
-        testBrowser = await firefox.launch({ headless: true });
+        testBrowser = await firefox.launch(launchOptions);
         break;
       case 'webkit':
-        testBrowser = await webkit.launch({ headless: true });
+        testBrowser = await webkit.launch(launchOptions);
         break;
       default:
-        testBrowser = await chromium.launch({ headless: true });
+        testBrowser = await chromium.launch(launchOptions);
         break;
     }
     await testBrowser.close();
@@ -36,17 +60,20 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
     return true;
   } catch (error) {
     console.log(`⚠️ ${browserType} browser not available, installing...`);
+    console.log(`Error details: ${error.message}`);
     
     return new Promise<boolean>((resolve) => {
       try {
         const installProcess = spawn(process.execPath, [
           require.resolve('playwright-core/cli.js'),
           'install',
-          browserType
+          browserType,
+          '--with-deps'
         ], {
           env: {
             ...process.env,
-            PLAYWRIGHT_BROWSERS_PATH: '/tmp/playwright-browsers'
+            PLAYWRIGHT_BROWSERS_PATH: browserPath,
+            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
           },
           stdio: 'pipe'
         });
@@ -97,7 +124,7 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
           ], {
             env: {
               ...process.env,
-              PLAYWRIGHT_BROWSERS_PATH: '/tmp/playwright-browsers'
+              PLAYWRIGHT_BROWSERS_PATH: browserPath
             },
             stdio: 'pipe'
           });
@@ -149,15 +176,44 @@ export class PlaywrightWorld extends World implements CustomWorld {
     // Install browser if needed before launching
     await installBrowserIfNeeded(browserType);
     
+    // Azure-compatible launch options
+    const isAzure = process.env.AZURE_DEPLOYMENT === 'true' || process.env.WEBSITE_SITE_NAME;
+    const launchOptions = {
+      headless: isHeadless,
+      args: isAzure ? [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection'
+      ] : [],
+      // Explicitly set executable path for Azure
+      ...(isAzure && {
+        executablePath: process.env.PLAYWRIGHT_BROWSERS_PATH 
+          ? `${process.env.PLAYWRIGHT_BROWSERS_PATH}/chromium_headless_shell-*/chrome-linux/headless_shell`
+          : undefined
+      })
+    };
+    
+    console.log(`🚀 Launching ${browserType} browser with Azure compatibility: ${isAzure}`);
+    console.log(`📍 Browser path: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`);
+    
     switch (browserType) {
       case 'firefox':
-        this.browser = await firefox.launch({ headless: isHeadless });
+        this.browser = await firefox.launch(launchOptions);
         break;
       case 'webkit':
-        this.browser = await webkit.launch({ headless: isHeadless });
+        this.browser = await webkit.launch(launchOptions);
         break;
       default:
-        this.browser = await chromium.launch({ headless: isHeadless });
+        this.browser = await chromium.launch(launchOptions);
         break;
     }
     
