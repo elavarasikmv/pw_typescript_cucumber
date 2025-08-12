@@ -118,6 +118,7 @@ app.get('/', (req, res) => {
             <button onclick="runTests()">Run Tests</button>
             <button onclick="viewResults()">View Results</button>
             <button onclick="checkHealth()">Health Check</button>
+            <button onclick="openTestInterface()">🎯 Test Interface</button>
         </div>
         
         <div id="output" style="margin-top: 20px;"></div>
@@ -150,6 +151,10 @@ app.get('/', (req, res) => {
                         '<div style="background: #d4edda; padding: 15px; border-radius: 5px;"><h3>Health Check:</h3><pre>' + 
                         JSON.stringify(data, null, 2) + '</pre></div>';
                 });
+        }
+        
+        function openTestInterface() {
+            window.open('/test-interface.html', '_blank');
         }
     </script>
 </body>
@@ -590,4 +595,40 @@ process.on('SIGTERM', () => {
 process.on('SIGINT', () => {
     console.log('💤 SIGINT received, shutting down gracefully...');
     process.exit(0);
+});
+
+// Serve test interface
+app.get('/test-interface.html', (req, res) => {
+    const testInterfacePath = path.join(__dirname, 'test-interface.html');
+    if (fs.existsSync(testInterfacePath)) {
+        res.sendFile(testInterfacePath);
+    } else {
+        res.status(404).send('Test interface not found');
+    }
+});
+
+// Add info endpoint to show available endpoints
+app.get('/info', (req, res) => {
+    const endpoints = [
+        'GET /',
+        'GET /health',
+        'GET /health?testBrowser=true',
+        'GET /test-interface.html',
+        'GET /test-results',
+        'GET /info',
+        'POST /install-browsers',
+        'POST /run-tests',
+        'POST /run-playwright-web',
+        'POST /run-playwright-api',
+        'POST /run-playwright-all',
+        'GET /logs/:filename'
+    ];
+    
+    res.json({
+        message: 'Azure Playwright Test Server',
+        version: '1.0.0',
+        timestamp: new Date().toISOString(),
+        availableEndpoints: endpoints,
+        testingUrl: `${req.protocol}://${req.get('host')}/test-interface.html`
+    });
 });
