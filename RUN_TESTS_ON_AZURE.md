@@ -25,13 +25,24 @@ https://your-app-name.azurewebsites.net/health?testBrowser=true
 ```
 Expected: JSON response showing Playwright status
 
-#### Step 4: Open Developer Tools and Test Endpoints
+#### Step 4: Access Test Interface (New!)
+```
+https://your-app-name.azurewebsites.net/test-interface.html
+```
+Expected: Interactive web interface with buttons to run tests
+
+#### Step 5: Open Developer Tools and Test Endpoints
 Press F12 → Console tab, then run:
 
 ```javascript
 // Test browser installation
 fetch('/install-browsers', { method: 'POST' })
   .then(response => response.text())
+  .then(data => console.log(data));
+
+// Check browser status
+fetch('/check-browser', { method: 'POST' })
+  .then(response => response.json())
   .then(data => console.log(data));
 
 // Test web test
@@ -48,9 +59,21 @@ fetch('/run-playwright-api', { method: 'POST' })
 fetch('/run-playwright-all', { method: 'POST' })
   .then(response => response.json())
   .then(data => console.log(data));
+
+// Test Cucumber tests
+fetch('/run-tests', { method: 'POST' })
+  .then(response => response.text())
+  .then(data => console.log(data));
 ```
 
 ### Method 2: Using PowerShell/Command Line
+
+#### Check browser status:
+```powershell
+$uri = "https://your-app-name.azurewebsites.net/check-browser"
+$response = Invoke-RestMethod -Uri $uri -Method POST
+$response | ConvertTo-Json -Depth 5
+```
 
 #### Install browsers first:
 ```powershell
