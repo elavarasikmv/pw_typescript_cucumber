@@ -58,22 +58,20 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
     await testBrowser.close();
     console.log(`✅ ${browserType} browser already available`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.log(`⚠️ ${browserType} browser not available, installing...`);
-    console.log(`Error details: ${error.message}`);
+    console.log(`Error details: ${error?.message || error}`);
     
     return new Promise<boolean>((resolve) => {
       try {
         const installProcess = spawn(process.execPath, [
           require.resolve('playwright-core/cli.js'),
           'install',
-          browserType,
-          '--with-deps'
+          browserType
         ], {
           env: {
             ...process.env,
-            PLAYWRIGHT_BROWSERS_PATH: browserPath,
-            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
+            PLAYWRIGHT_BROWSERS_PATH: '/tmp/playwright-browsers'
           },
           stdio: 'pipe'
         });
@@ -101,8 +99,8 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
           }
         });
         
-        installProcess.on('error', (error) => {
-          console.log(`❌ ${browserType} browser installation process error: ${error.message}`);
+        installProcess.on('error', (error: any) => {
+          console.log(`❌ ${browserType} browser installation process error: ${error?.message || error}`);
           resolve(false);
         });
         
@@ -114,7 +112,7 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
         }, 300000); // 5 minutes
         
       } catch (requireError: any) {
-        console.log(`playwright-core not found, trying fallback: ${requireError.message}`);
+        console.log(`playwright-core not found, trying fallback: ${requireError?.message || requireError}`);
         // Fallback: try using playwright package
         try {
           const installProcess = spawn(process.execPath, [
@@ -134,12 +132,12 @@ async function installBrowserIfNeeded(browserType: string = 'chromium') {
             resolve(code === 0);
           });
           
-          installProcess.on('error', (error) => {
-            console.log(`${browserType} browser installation (fallback) error: ${error.message}`);
+          installProcess.on('error', (error: any) => {
+            console.log(`${browserType} browser installation (fallback) error: ${error?.message || error}`);
             resolve(false);
           });
         } catch (fallbackError: any) {
-          console.log(`Both playwright and playwright-core failed: ${fallbackError.message}`);
+          console.log(`Both playwright and playwright-core failed: ${fallbackError?.message || fallbackError}`);
           resolve(false);
         }
       }
@@ -176,44 +174,15 @@ export class PlaywrightWorld extends World implements CustomWorld {
     // Install browser if needed before launching
     await installBrowserIfNeeded(browserType);
     
-    // Azure-compatible launch options
-    const isAzure = process.env.AZURE_DEPLOYMENT === 'true' || process.env.WEBSITE_SITE_NAME;
-    const launchOptions = {
-      headless: isHeadless,
-      args: isAzure ? [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-features=TranslateUI',
-        '--disable-ipc-flooding-protection'
-      ] : [],
-      // Explicitly set executable path for Azure
-      ...(isAzure && {
-        executablePath: process.env.PLAYWRIGHT_BROWSERS_PATH 
-          ? `${process.env.PLAYWRIGHT_BROWSERS_PATH}/chromium_headless_shell-*/chrome-linux/headless_shell`
-          : undefined
-      })
-    };
-    
-    console.log(`🚀 Launching ${browserType} browser with Azure compatibility: ${isAzure}`);
-    console.log(`📍 Browser path: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`);
-    
     switch (browserType) {
       case 'firefox':
-        this.browser = await firefox.launch(launchOptions);
+        this.browser = await firefox.launch({ headless: isHeadless });
         break;
       case 'webkit':
-        this.browser = await webkit.launch(launchOptions);
+        this.browser = await webkit.launch({ headless: isHeadless });
         break;
       default:
-        this.browser = await chromium.launch(launchOptions);
+        this.browser = await chromium.launch({ headless: isHeadless });
         break;
     }
     
