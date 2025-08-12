@@ -519,6 +519,54 @@ app.post('/run-playwright-all', async (req, res) => {
     }
 });
 
+// Add check-browser endpoint for browser status verification
+app.post('/check-browser', async (req, res) => {
+    console.log('🔍 Checking browser status...');
+    
+    try {
+        const { chromium } = require('playwright');
+        
+        // Try to launch browser to verify it's working
+        const browser = await chromium.launch({ 
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process'
+            ]
+        });
+        
+        const page = await browser.newPage();
+        await page.goto('https://example.com');
+        const title = await page.title();
+        await browser.close();
+        
+        res.json({
+            success: true,
+            message: 'Browser check passed',
+            details: {
+                browserType: 'chromium',
+                testUrl: 'https://example.com',
+                title: title,
+                timestamp: new Date().toISOString()
+            }
+        });
+        
+    } catch (error) {
+        console.error('Browser check failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Browser check failed',
+            details: error.message,
+            suggestion: 'Try running /install-browsers first'
+        });
+    }
+});
+
 // Helper function to ensure browsers are installed
 async function ensureBrowsersInstalled() {
     try {
@@ -577,33 +625,164 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Start the server
-app.listen(port, () => {
-    console.log(`🚀 Playwright Cucumber Framework is running!`);
-    console.log(`🌐 Server: http://localhost:${port}`);
-    console.log(`📊 Health: http://localhost:${port}/health`);
-    console.log(`🎭 Ready to run tests!`);
-    console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('💤 SIGTERM received, shutting down gracefully...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('💤 SIGINT received, shutting down gracefully...');
-    process.exit(0);
-});
-
-// Serve test interface
+// Serve test interface HTML file
 app.get('/test-interface.html', (req, res) => {
-    const testInterfacePath = path.join(__dirname, 'test-interface.html');
+    const testInterfacePath = path.join(__dirname, 'public', 'test-interface.html');
     if (fs.existsSync(testInterfacePath)) {
         res.sendFile(testInterfacePath);
     } else {
-        res.status(404).send('Test interface not found');
+        // Fallback: serve inline HTML if file doesn't exist
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright Test Interface</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .btn { background: #007acc; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #005a9e; }
+        #output { margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 5px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>🎭 Playwright Test Interface</h1>
+    <div class="status info">
+        <strong>Azure Deployment Ready!</strong> Use the buttons below to test your Playwright setup.
+    </div>
+    
+    <h2>🔧 Browser Setup</h2>
+    <button class="btn" onclick="installBrowsers()">Install Browsers</button>
+    <button class="btn" onclick="checkHealth()">Health Check</button>
+    
+    <h2>🧪 Run Tests</h2>
+    <button class="btn" onclick="runWebTest()">Web Test</button>
+    <button class="btn" onclick="runApiTest()">API Test</button>
+    <button class="btn" onclick="runAllTests()">All Tests</button>
+    <button class="btn" onclick="runCucumberTests()">Cucumber Tests</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        function showOutput(message, type = 'info') {
+            const output = document.getElementById('output');
+            output.innerHTML = '<div class="status ' + type + '">' + message + '</div>';
+        }
+        
+        function installBrowsers() {
+            showOutput('🔧 Installing browsers... Please wait...', 'info');
+            fetch('/install-browsers', { method: 'POST' })
+                .then(response => response.text())
+                .then(data => showOutput('<h3>Browser Installation:</h3><pre>' + data + '</pre>', 'success'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+        
+        function checkHealth() {
+            showOutput('🔍 Checking health...', 'info');
+            fetch('/health?testBrowser=true')
+                .then(response => response.json())
+                .then(data => showOutput('<h3>Health Check:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>', 'success'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+        
+        function runWebTest() {
+            showOutput('🌐 Running web test...', 'info');
+            fetch('/run-playwright-web', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => showOutput('<h3>Web Test Results:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>', data.success ? 'success' : 'error'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+        
+        function runApiTest() {
+            showOutput('🔌 Running API test...', 'info');
+            fetch('/run-playwright-api', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => showOutput('<h3>API Test Results:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>', data.success ? 'success' : 'error'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+        
+        function runAllTests() {
+            showOutput('🎭 Running all tests...', 'info');
+            fetch('/run-playwright-all', { method: 'POST' })
+                .then(response => response.json())
+                .then data => showOutput('<h3>All Test Results:</h3><pre>' + JSON.stringify(data, null, 2) + '</pre>', data.success ? 'success' : 'error'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+        
+        function runCucumberTests() {
+            showOutput('🥒 Running Cucumber tests...', 'info');
+            fetch('/run-tests', { method: 'POST' })
+                .then(response => response.text())
+                .then(data => showOutput('<h3>Cucumber Test Results:</h3><pre>' + data + '</pre>', 'success'))
+                .catch(error => showOutput('❌ Error: ' + error, 'error'));
+        }
+    </script>
+</body>
+</html>`;
+        res.send(html);
+    }
+});
+
+// Add missing POST /install-browsers endpoint
+app.post('/install-browsers', async (req, res) => {
+    console.log('🎭 Starting browser installation...');
+    
+    try {
+        const { spawn } = require('child_process');
+        
+        res.writeHead(200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Transfer-Encoding': 'chunked'
+        });
+        
+        res.write('🎭 Installing Playwright browsers...\\n');
+        res.write('=====================================\\n\\n');
+        
+        const installProcess = spawn('npx', ['playwright', 'install', 'chromium', '--with-deps'], {
+            stdio: 'pipe',
+            env: {
+                ...process.env,
+                PLAYWRIGHT_BROWSERS_PATH: '/home/site/wwwroot/browsers',
+                PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
+            }
+        });
+        
+        installProcess.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log('INSTALL STDOUT:', output);
+            res.write(output);
+        });
+        
+        installProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            console.log('INSTALL STDERR:', output);
+            res.write('⚠️ ' + output);
+        });
+        
+        installProcess.on('close', (code) => {
+            const message = code === 0 ? '✅ Browser installation completed successfully!' : '❌ Browser installation failed.';
+            res.write(`\\n\\n${message}\\n`);
+            res.write(`Exit code: ${code}\\n`);
+            res.end();
+        });
+        
+        installProcess.on('error', (error) => {
+            console.error('Install process error:', error);
+            res.write(`\\n❌ Error during installation: ${error.message}\\n`);
+            res.end();
+        });
+        
+    } catch (error) {
+        console.error('Browser installation error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Browser installation failed',
+            details: error.message
+        });
     }
 });
 
@@ -617,10 +796,13 @@ app.get('/info', (req, res) => {
         'GET /test-results',
         'GET /info',
         'POST /install-browsers',
+        'POST /check-browser',
         'POST /run-tests',
+        'POST /run-simple-test',
         'POST /run-playwright-web',
         'POST /run-playwright-api',
         'POST /run-playwright-all',
+        'GET /logs',
         'GET /logs/:filename'
     ];
     
@@ -631,4 +813,25 @@ app.get('/info', (req, res) => {
         availableEndpoints: endpoints,
         testingUrl: `${req.protocol}://${req.get('host')}/test-interface.html`
     });
+});
+
+// Start the server
+app.listen(port, () => {
+    console.log(`🚀 Playwright Cucumber Framework is running!`);
+    console.log(`🌐 Server: http://localhost:${port}`);
+    console.log(`📊 Health: http://localhost:${port}/health`);
+    console.log(`🎭 Test Interface: http://localhost:${port}/test-interface.html`);
+    console.log(`🎭 Ready to run tests!`);
+    console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('💤 SIGTERM received, shutting down gracefully...');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('💤 SIGINT received, shutting down gracefully...');
+    process.exit(0);
 });
