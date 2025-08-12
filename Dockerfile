@@ -81,5 +81,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))" || exit 1
 
-# Default command - use the comprehensive deployment script
-CMD ["./azure-deploy-complete.sh"]
+# Default command - use the environment setup script
+CMD ["./start-azure.sh"]

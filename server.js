@@ -317,6 +317,251 @@ app.get('/logs/:filename', (req, res) => {
     }
 });
 
+// Force browser installation endpoint
+app.post('/install-browsers', async (req, res) => {
+    console.log('🎭 Starting browser installation...');
+    
+    try {
+        const { spawn } = require('child_process');
+        
+        res.writeHead(200, {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Transfer-Encoding': 'chunked'
+        });
+        
+        res.write('🎭 Installing Playwright browsers...\n');
+        res.write('=====================================\n\n');
+        
+        const installProcess = spawn('npx', ['playwright', 'install', 'chromium', '--with-deps'], {
+            stdio: 'pipe',
+            env: {
+                ...process.env,
+                PLAYWRIGHT_BROWSERS_PATH: '/home/site/wwwroot/browsers',
+                PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
+            }
+        });
+        
+        installProcess.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log('INSTALL STDOUT:', output);
+            res.write(output);
+        });
+        
+        installProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            console.log('INSTALL STDERR:', output);
+            res.write('⚠️ ' + output);
+        });
+        
+        installProcess.on('close', (code) => {
+            const message = code === 0 ? '✅ Browser installation completed successfully!' : '❌ Browser installation failed.';
+            res.write(`\n\n${message}\n`);
+            res.write(`Exit code: ${code}\n`);
+            res.end();
+        });
+        
+        installProcess.on('error', (error) => {
+            console.error('Install process error:', error);
+            res.write(`\n❌ Error during installation: ${error.message}\n`);
+            res.end();
+        });
+        
+    } catch (error) {
+        console.error('Browser installation error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Run Playwright web test
+app.post('/run-playwright-web', async (req, res) => {
+    console.log('🌐 Starting Playwright web test...');
+    
+    try {
+        // Ensure browser installation first
+        await ensureBrowsersInstalled();
+        
+        const webTestPath = path.join(__dirname, 'src', 'tests', 'basic-web-test.js');
+        if (!fs.existsSync(webTestPath)) {
+            return res.status(404).json({
+                success: false,
+                error: 'Web test file not found',
+                path: webTestPath
+            });
+        }
+        
+        const { runBasicWebTest } = require(webTestPath);
+        const result = await runBasicWebTest();
+        
+        res.json({
+            success: result.success,
+            result: result,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Playwright web test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Run Playwright API test
+app.post('/run-playwright-api', async (req, res) => {
+    console.log('🔗 Starting Playwright API test...');
+    
+    try {
+        const apiTestPath = path.join(__dirname, 'src', 'tests', 'api-test.js');
+        if (!fs.existsSync(apiTestPath)) {
+            return res.status(404).json({
+                success: false,
+                error: 'API test file not found',
+                path: apiTestPath
+            });
+        }
+        
+        const { runApiTest } = require(apiTestPath);
+        const result = await runApiTest();
+        
+        res.json({
+            success: result.success,
+            result: result,
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('Playwright API test error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Run all Playwright tests
+app.post('/run-playwright-all', async (req, res) => {
+    console.log('🚀 Starting all Playwright tests...');
+    
+    try {
+        // Ensure browser installation first
+        console.log('🔍 Ensuring browsers are installed...');
+        await ensureBrowsersInstalled();
+        
+        const results = {
+            webTest: { success: false, error: 'Not executed' },
+            apiTest: { success: false, error: 'Not executed' }
+        };
+        
+        // Run web test
+        try {
+            const webTestPath = path.join(__dirname, 'src', 'tests', 'basic-web-test.js');
+            if (fs.existsSync(webTestPath)) {
+                const { runBasicWebTest } = require(webTestPath);
+                results.webTest = await runBasicWebTest();
+            } else {
+                results.webTest = { success: false, error: 'Web test file not found' };
+            }
+        } catch (webError) {
+            console.error('Web test execution error:', webError);
+            results.webTest = { 
+                success: false, 
+                error: webError.message,
+                instruction: 'Try running /install-browsers first'
+            };
+        }
+        
+        // Run API test
+        try {
+            const apiTestPath = path.join(__dirname, 'src', 'tests', 'api-test.js');
+            if (fs.existsSync(apiTestPath)) {
+                const { runApiTest } = require(apiTestPath);
+                results.apiTest = await runApiTest();
+            } else {
+                results.apiTest = { success: false, error: 'API test file not found' };
+            }
+        } catch (apiError) {
+            console.error('API test execution error:', apiError);
+            results.apiTest = { success: false, error: apiError.message };
+        }
+        
+        const overallSuccess = results.webTest.success && results.apiTest.success;
+        
+        res.json({
+            success: overallSuccess,
+            results: results,
+            message: 'All Playwright tests executed',
+            timestamp: new Date().toISOString()
+        });
+        
+    } catch (error) {
+        console.error('All tests execution error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to execute all tests',
+            instruction: 'Try running /install-browsers endpoint first',
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Helper function to ensure browsers are installed
+async function ensureBrowsersInstalled() {
+    try {
+        const { chromium } = require('playwright');
+        
+        // Try to get executable path to check if browser exists
+        try {
+            const executablePath = chromium.executablePath();
+            console.log(`✅ Browser found at: ${executablePath}`);
+            return true;
+        } catch (pathError) {
+            console.log('⚠️ Browser executable not found, attempting installation...');
+            
+            // Try to install browsers
+            const { spawn } = require('child_process');
+            
+            return new Promise((resolve, reject) => {
+                const installProcess = spawn('npx', ['playwright', 'install', 'chromium'], {
+                    stdio: 'pipe',
+                    env: {
+                        ...process.env,
+                        PLAYWRIGHT_BROWSERS_PATH: '/home/site/wwwroot/browsers',
+                        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
+                    }
+                });
+                
+                installProcess.on('close', (code) => {
+                    if (code === 0) {
+                        console.log('✅ Browser installation completed');
+                        resolve(true);
+                    } else {
+                        console.log('❌ Browser installation failed');
+                        resolve(false);
+                    }
+                });
+                
+                installProcess.on('error', (error) => {
+                    console.error('❌ Browser installation process error:', error);
+                    resolve(false);
+                });
+            });
+        }
+    } catch (requireError) {
+        console.error('❌ Playwright not available:', requireError);
+        return false;
+    }
+}
+
 // Error handling middleware
 app.use((error, req, res, next) => {
     console.error('Express error:', error);

@@ -2,8 +2,14 @@ const { chromium } = require('playwright');
 
 async function ensureBrowsersInstalled() {
     console.log('🔍 Checking browser installation...');
+    
+    // Force correct environment variables
+    process.env.PLAYWRIGHT_BROWSERS_PATH = '/home/site/wwwroot/browsers';
+    process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = 'false';
+    
     try {
         // Try to get the executable path
+        const { chromium } = require('playwright');
         const executablePath = await chromium.executablePath();
         console.log(`✅ Browser found at: ${executablePath}`);
         return true;
@@ -16,7 +22,12 @@ async function ensureBrowsersInstalled() {
             
             return new Promise((resolve, reject) => {
                 const installProcess = spawn('npx', ['playwright', 'install', 'chromium'], {
-                    stdio: 'pipe'
+                    stdio: 'pipe',
+                    env: {
+                        ...process.env,
+                        PLAYWRIGHT_BROWSERS_PATH: '/home/site/wwwroot/browsers',
+                        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 'false'
+                    }
                 });
                 
                 installProcess.stdout.on('data', (data) => {
@@ -64,9 +75,14 @@ async function runBasicWebTest() {
     
     let browser = null;
     try {
+        // Force correct environment variables before launching
+        process.env.PLAYWRIGHT_BROWSERS_PATH = '/home/site/wwwroot/browsers';
+        process.env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = 'false';
+        
         // Launch browser with Azure-friendly settings
         browser = await chromium.launch({
             headless: true,
+            executablePath: process.env.CHROMIUM_EXECUTABLE_PATH || undefined,
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
