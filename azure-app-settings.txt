@@ -1,33 +1,61 @@
-# Azure App Service Application Settings
-# Add these in Azure Portal: App Service → Configuration → Application settings
+# =============================================================================
+# AZURE APP SERVICE CONFIGURATION SETTINGS
+# =============================================================================
+# Copy these settings to Azure Portal > App Service > Configuration > Application Settings
 
-# Playwright Configuration
+# =============================================================================
+# PLAYWRIGHT CONFIGURATION (CRITICAL FOR BROWSER FUNCTIONALITY)
+# =============================================================================
 PLAYWRIGHT_BROWSERS_PATH=/home/site/wwwroot/browsers
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=false
+PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=true
 PLAYWRIGHT_CACHE_DIR=/home/site/wwwroot/.cache
 PLAYWRIGHT_DOWNLOAD_HOST=https://playwright.azureedge.net
 
-# Node.js Configuration
+# =============================================================================
+# NODE.JS CONFIGURATION  
+# =============================================================================
 NODE_ENV=production
 NODE_OPTIONS=--max-old-space-size=2048
+WEBSITE_NODE_DEFAULT_VERSION=18.17.0
 
-# Application Configuration
+# =============================================================================
+# APPLICATION CONFIGURATION
+# =============================================================================
+PORT=8080
 HEADLESS=true
 CI=true
 AZURE_DEPLOYMENT=true
 
-# Browser Configuration
+# =============================================================================
+# BROWSER CONFIGURATION
+# =============================================================================
 BROWSER=chromium
 CHROME_DEVEL_SANDBOX=false
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Build Configuration
+# =============================================================================
+# BUILD AND DEPLOYMENT CONFIGURATION
+# =============================================================================
 SCM_DO_BUILD_DURING_DEPLOYMENT=true
 ENABLE_ORYX_BUILD=true
 BUILD_FLAGS=useExpressServer
+WEBSITE_ENABLE_SYNC_UPDATE_SITE=true
 
-# Timeout Configuration
+# =============================================================================
+# PERFORMANCE AND TIMEOUT CONFIGURATION
+# =============================================================================
 TEST_TIMEOUT=30000
+WEBSITE_DYNAMIC_CACHE=0
+WEBSITE_LOCAL_CACHE_OPTION=Never
+WEBSITE_LOCAL_CACHE_SIZEINMB=0
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+LOG_LEVEL=info
+LOGGING_ENABLED=true
+WEBSITE_HTTPLOGGING_RETENTION_DAYS=7
 
 # Performance Configuration
 UV_THREADPOOL_SIZE=4

@@ -1,4 +1,4 @@
-# Azure DevOps Pipeline for Playwright Cucumber
+# Azure DevOps Pipeline for Playwright Cucumber App Service Deployment
 # File: azure-pipelines.yml
 
 trigger:
@@ -8,25 +8,29 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  # Azure App Service Variables
+  # Environment Variables
   HEADLESS: 'true'
   CI: 'true'
   NODE_ENV: 'production'
-  PLAYWRIGHT_BROWSERS_PATH: '/tmp/playwright-browsers'
+  PLAYWRIGHT_BROWSERS_PATH: '/home/site/wwwroot/browsers'
   TEST_TIMEOUT: '30000'
   BROWSER: 'chromium'
   
-  # Azure DevOps Specific
-  azureSubscription: 'your-service-connection-name'
-  appServiceName: 'playwright-cucumber-tests'
-  resourceGroupName: 'your-resource-group'
+  # Azure DevOps Specific - CONFIGURE THESE IN YOUR PIPELINE
+  azureSubscription: 'your-azure-service-connection'  # Update this
+  appServiceName: 'your-app-service-name'             # Update this
+  resourceGroupName: 'your-resource-group'           # Update this
+  
+  # Build Variables
+  buildConfiguration: 'Release'
+  nodeVersion: '18.x'
 
 stages:
 - stage: Build
   displayName: 'Build and Test'
   jobs:
   - job: BuildJob
-    displayName: 'Build'
+    displayName: 'Build Application'
     steps:
     - task: NodeTool@0
       inputs:
